@@ -1,0 +1,7 @@
+POST https://mkaccess.com.br:8088/api/v1/application/autentication
+Authorization: Bearer fd7c91d13c57be8d7d8f5f2a2e4cfb28
+Content-Type: application/json
+
+{
+  "cpfCnpj": "01481182323"
+}
