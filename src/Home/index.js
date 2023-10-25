@@ -6,6 +6,7 @@ import {
   Image,
   StyleSheet,
   FlatList,
+  ScrollView,
   Linking,
   Modal,
 } from "react-native";
@@ -23,8 +24,11 @@ export default function Home({ route }) {
   const [contractDueStatus, setDueStatus] = useState("");
   const [boletoLink, setBoletoLink] = useState("");
   const [Pix, setPix] = useState("");
+  const [barcode, setBarcode] = useState("");
   const [isModalVisible, setModalVisible] = useState(false);
+  const [isModalVisible2, setModalVisible2] = useState(false);
   const [pixCopied, setPixCopied] = useState(false);
+  const [pixBarCodeCopied, setBarcodeCopied] = useState(false);
 
   useEffect(() => {
     if (selectedContract) {
@@ -32,14 +36,15 @@ export default function Home({ route }) {
       const dueDate = selectedContract.booklet[0].dueDate || " ";
       const link = selectedContract.booklet[0].billetCurrent || "";
       const pix_copy_paste = selectedContract.booklet[0].pix_copy_paste || "";
+      const barcode = selectedContract.booklet[0].barcode || "";
 
       setContractStatus(status);
 
       const formattedDueDate = formatDueDate(dueDate);
       setDueStatus(formattedDueDate);
-
       setBoletoLink(link);
       setPix(pix_copy_paste);
+      setBarcode(barcode);
     }
   }, [selectedContract]);
 
@@ -67,9 +72,20 @@ export default function Home({ route }) {
     } catch (error) {}
   };
 
+  const handleCopyToClipboardBarCode = async () => {
+    try {
+      await Clipboard.setString(barcode);
+    } catch (error) {}
+  };
+
   const handlePixPaymentPress = () => {
     if (Pix) {
       setModalVisible(true);
+    }
+  };
+  const handleBarCodePress = () => {
+    if (barcode) {
+      setModalVisible2(true);
     }
   };
 
@@ -90,39 +106,62 @@ export default function Home({ route }) {
       >
         <Animatable.View animation="fadeIn" duration={3000}>
           <Text style={styles.statusText3}>
-            Confira como está o seu contrato agora:
+            Confira como está o seu boleto agora:
           </Text>
         </Animatable.View>
 
-        <Animatable.View animation="fadeIn" duration={3000}style={styles.card}>
-          <Text style={styles.statusText}>Situação: {contractStatus}</Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+          style={styles.contractList}
+        >
+          <Animatable.View style={styles.card}>
+            <Text style={styles.statusText}>Situação: {contractStatus}</Text>
 
-          <Text style={styles.statusText2}>
-            Vencimento: {contractDueStatus}
-          </Text>
+            <Text style={styles.statusText2}>
+              Vencimento: {contractDueStatus}{" "}
+            </Text>
+
+            <View style={styles.cardText}>
+              <Text style={styles.statusText4}>
+                Os dados necessários para acessar ou imprimir o boleto estão
+                logo abaixo:
+              </Text>
+            </View>
+
+            <Animatable.View
+              animation="fadeIn"
+              duration={3000}
+              style={styles.card2}
+            >
+              <TouchableOpacity
+                style={styles.printButton}
+                onPress={handlePrintPress}
+              >
+                <Text style={styles.buttonText}>Imprimir</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.printButton2}
+                onPress={handleBarCodePress}
+              >
+                <Text style={styles.buttonText}>
+                  Pagar boleto via código de barras
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.pixButton}
+                onPress={handlePixPaymentPress}
+              >
+                <Text style={styles.buttonText}>Pagar boleto via Pix</Text>
+              </TouchableOpacity>
+            </Animatable.View>
           </Animatable.View>
 
-        <Text style={styles.statusText3}>
-          Os dados necessários para acessar ou imprimir o boleto estão logo
-          abaixo:
-        </Text>
+        </ScrollView>
 
-        <Animatable.View animation="fadeIn" duration={3000} style={styles.card2}>
-          <TouchableOpacity
-            style={styles.printButton}
-            onPress={handlePrintPress}
-          >
-            <Text style={styles.buttonText}>Imprimir</Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.pixButton}
-            onPress={handlePixPaymentPress}
-          >
-            <Text style={styles.buttonText}>Pagar boleto via Pix</Text>
-          </TouchableOpacity>
-          
-          </Animatable.View>
       </Animatable.View>
 
       <Modal animationType="slide" transparent={true} visible={isModalVisible}>
@@ -149,6 +188,37 @@ export default function Home({ route }) {
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.closeText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal animationType="slide" transparent={true} visible={isModalVisible2}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>
+              Para realizar o pagamento via código de barras, copie e cole o
+              código de barras no seu aplicativo do banco
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                handleCopyToClipboardBarCode(barcode);
+                setBarcodeCopied(true);
+              }}
+              style={[
+                styles.copyButton,
+                { backgroundColor: pixCopied ? "#00FF7F" : "#90EE90" },
+              ]}
+            >
+              <Text style={styles.copyText}>Copiar código de barras</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setModalVisible2(false)}
             >
               <Text style={styles.closeText}>Fechar</Text>
             </TouchableOpacity>
@@ -190,7 +260,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "bold",
   },
   statusText: {
@@ -211,6 +281,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 10,
   },
+  statusText4: {
+    color: "#111",
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
   card: {
     width: "98%",
     padding: 20,
@@ -227,25 +303,24 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   card2: {
-    width: "98%",
-    padding: 20,
-    borderRadius: 20,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    width: "100%",
     marginBottom: 20,
+    marginTop: 5,
     justifyContent: "center",
     alignItems: "center",
   },
+  cardText: {
+    width: "100%",
+    marginBottom: 5,
+    marginTop: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    textAlign: "center",
+    alignSelf: "center",
+  },
   printButton: {
     marginVertical: 10,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 20,
     alignItems: "center",
@@ -253,9 +328,19 @@ const styles = StyleSheet.create({
     width: "90%",
     backgroundColor: "#354799",
   },
+  printButton2: {
+    marginVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "90%",
+    backgroundColor: "#4682B4",
+  },
   pixButton: {
     marginVertical: 10,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 20,
     alignItems: "center",
@@ -286,7 +371,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#007AFF",
     padding: 10,
     borderRadius: 20,
-    marginTop: 10, // Espaço superior
+    marginTop: 10,
     justifyContent: "center",
     alignItems: "center",
   },

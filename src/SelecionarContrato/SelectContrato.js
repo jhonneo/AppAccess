@@ -56,11 +56,10 @@ export default function SelecionarContrato({ route, navigation }) {
             style={styles.contractItem}
           >
             <Text style={styles.contractName}>Contrato {index + 1}</Text>
+            <Text style={styles.contractInfo2}>Situação: {contract.status}</Text>
             <Text style={styles.contractInfo}>Nome: {contract.nome}</Text>
             <Text style={styles.contractInfo}>Plano: {contract.plano}</Text>
-            <Text style={styles.contractInfo}>
-              Endereço: {contract.endereco}
-            </Text>
+            <Text style={styles.contractInfo}>Endereço: {contract.endereco}</Text>
             <Text style={styles.contractInfo}>Bairro: {contract.bairro}</Text>
             <Text style={styles.contractInfo}>Cidade: {contract.cidade}</Text>
             <Text style={styles.contractInfo}>Estado: {contract.estado}</Text>
@@ -126,6 +125,10 @@ const styles = StyleSheet.create({
   contractName: {
     fontSize: 20,
     fontWeight: "bold",
+    marginBottom: 5,
+  },
+  contractInfo2: {
+    fontSize: 18,
     marginBottom: 5,
   },
   contractInfo: {
