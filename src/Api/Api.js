@@ -8,6 +8,16 @@ const api = axios.create({
   },
 });
 
+// Configuração da segunda API
+const apiTemporaryRelease = axios.create({
+  baseURL: "https://mkaccess.com.br:8088/api/v1/application/temporaryRelease",
+  headers: {
+    "Content-Type": "application/json",
+    token: "fd7c91d13c57be8d7d8f5f2a2e4cfb28",
+  },
+});
+
+
 export const consultaAPI = async (cpfCnpj) => {
   try {
     const response = await api.post("/autentication", { cpfCnpj });
@@ -16,7 +26,7 @@ export const consultaAPI = async (cpfCnpj) => {
       const contracts = response.data.contracts;
 
       if (contracts && contracts.length > 0) {
-        const contract = contracts[0]; // Assumindo que você deseja o primeiro contrato na lista
+        const contract = contracts[0]; 
 
         const userData = {
           nome: contract.nome,
@@ -53,5 +63,21 @@ export const consultaAPI = async (cpfCnpj) => {
     throw error;
   }
 };
+
+
+export const liberaTemporariamenteAPI = async (cliente, boleto) => {
+  try {
+    const segundaResposta = await apiTemporaryRelease.post("/liberation", {
+      idClient: cliente.id,
+      code: boleto.code,
+    });
+
+    console.log("Segunda API - Liberação Temporária:", segundaResposta.data);
+  } catch (error) {
+    console.error('Erro ao liberar temporariamente a API:', error.response ? error.response.data : error.message);
+  }
+};
+
+
 
 export default api;

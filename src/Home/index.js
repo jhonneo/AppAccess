@@ -5,15 +5,18 @@ import {
   Text,
   Image,
   StyleSheet,
-  FlatList,
   ScrollView,
   Linking,
+  Button,
   Modal,
 } from "react-native";
 import logo from "../Images/logo.png";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { consultaAPI } from "../Api/Api";
+import { consultaAPI, liberaTemporariamenteAPI } from "../Api/Api";
+import { MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
+import { AntDesign } from "@expo/vector-icons";
 
 import * as Clipboard from "expo-clipboard";
 import * as Animatable from "react-native-animatable";
@@ -29,6 +32,8 @@ export default function Home({ route }) {
   const [isModalVisible2, setModalVisible2] = useState(false);
   const [pixCopied, setPixCopied] = useState(false);
   const [pixBarCodeCopied, setBarcodeCopied] = useState(false);
+  const [modalErrorVisible, setModalErrorVisible] = useState(false);
+  const [modalSuccessVisible, setModalSuccessVisible] = useState(false);
 
   useEffect(() => {
     if (selectedContract) {
@@ -83,9 +88,25 @@ export default function Home({ route }) {
       setModalVisible(true);
     }
   };
+
   const handleBarCodePress = () => {
     if (barcode) {
       setModalVisible2(true);
+    }
+  };
+
+  const handleLiberarPress = async () => {
+    try {
+      //os dados do cliente e do boleto
+      const cliente = { id: "id-do-cliente", status: "REDUZIDO" };
+      const boleto = { code: "codigo-do-boleto", temporary_released: false };
+
+      // Chama a função para liberar temporariamente
+      await liberaTemporariamenteAPI(cliente, boleto);
+
+      setModalSuccessVisible(true);
+    } catch (error) {
+      setModalErrorVisible(true);
     }
   };
 
@@ -138,6 +159,7 @@ export default function Home({ route }) {
                 style={styles.printButton}
                 onPress={handlePrintPress}
               >
+                <FontAwesome name="print" size={24} color="white" />
                 <Text style={styles.buttonText}>Imprimir</Text>
               </TouchableOpacity>
 
@@ -145,6 +167,7 @@ export default function Home({ route }) {
                 style={styles.printButton2}
                 onPress={handleBarCodePress}
               >
+                <AntDesign name="barcode" size={24} color="white" />
                 <Text style={styles.buttonText}>
                   Pagar boleto via código de barras
                 </Text>
@@ -154,14 +177,22 @@ export default function Home({ route }) {
                 style={styles.pixButton}
                 onPress={handlePixPaymentPress}
               >
+                <FontAwesome name="money" size={24} color="white" />
                 <Text style={styles.buttonText}>Pagar boleto via Pix</Text>
               </TouchableOpacity>
             </Animatable.View>
           </Animatable.View>
 
+          <View style={styles.liberarContainer}>
+            <TouchableOpacity
+              style={styles.liberarButtom}
+              onPress={handleLiberarPress}
+            >
+              <MaterialIcons name="payments" size={24} color="white" />
+              <Text style={styles.buttonText}>Promessa de pagamento</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
-
-
       </Animatable.View>
 
       <Modal animationType="slide" transparent={true} visible={isModalVisible}>
@@ -210,7 +241,7 @@ export default function Home({ route }) {
               }}
               style={[
                 styles.copyButton,
-                { backgroundColor: pixCopied ? "#00FF7F" : "#90EE90" },
+                { backgroundColor: pixBarCodeCopied ? "#00FF7F" : "#90EE90" },
               ]}
             >
               <Text style={styles.copyText}>Copiar código de barras</Text>
@@ -219,6 +250,49 @@ export default function Home({ route }) {
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisible2(false)}
+            >
+              <Text style={styles.closeText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalErrorVisible}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>
+              Erro ao liberar temporariamente,por favor entre em contato via
+              WhatsApp
+            </Text>
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setModalErrorVisible(false)}
+            >
+              <Text style={styles.closeText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalSuccessVisible}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>
+              Sucesso! Você tem 24 horas para realizar o pagamento
+            </Text>
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setModalSuccessVisible(false)}
             >
               <Text style={styles.closeText}>Fechar</Text>
             </TouchableOpacity>
@@ -309,6 +383,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  liberarContainer: {
+    width: "100%",
+    marginBottom: 20,
+    marginTop: 5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   cardText: {
     width: "100%",
     marginBottom: 5,
@@ -324,14 +405,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 20,
     alignItems: "center",
+    gap: 10,
+    flexDirection: "row",
     justifyContent: "center",
     width: "90%",
     backgroundColor: "#354799",
+  },
+  liberarButtom: {
+    marginVertical: 10,
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "90%",
+    backgroundColor: "#3CB371",
   },
   printButton2: {
     marginVertical: 10,
     paddingVertical: 12,
     paddingHorizontal: 20,
+    gap: 10,
+    flexDirection: "row",
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
@@ -342,6 +439,8 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     paddingVertical: 12,
     paddingHorizontal: 20,
+    gap: 10,
+    flexDirection: "row",
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
