@@ -11,12 +11,12 @@ import {
   Modal,
 } from "react-native";
 import logo from "../Images/logo.png";
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { consultaAPI, liberaTemporariamenteAPI } from "../Api/Api";
 import { MaterialIcons } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 
 import * as Clipboard from "expo-clipboard";
 import * as Animatable from "react-native-animatable";
@@ -126,9 +126,7 @@ export default function Home({ route }) {
         style={styles.centeredView}
       >
         <Animatable.View animation="fadeIn" duration={3000}>
-          <Text style={styles.statusText3}>
-            Confira como está o seu boleto agora:
-          </Text>
+          <Text style={styles.statusText3}>Confira os boletos abaixo:</Text>
         </Animatable.View>
 
         <ScrollView
@@ -144,10 +142,7 @@ export default function Home({ route }) {
             </Text>
 
             <View style={styles.cardText}>
-              <Text style={styles.statusText4}>
-                Os dados necessários para acessar ou imprimir o boleto estão
-                logo abaixo:
-              </Text>
+              <Text style={styles.statusText4}>Escolha uma opção abaixo:</Text>
             </View>
 
             <Animatable.View
@@ -159,7 +154,12 @@ export default function Home({ route }) {
                 style={styles.printButton}
                 onPress={handlePrintPress}
               >
-                <FontAwesome name="print" size={24} color="white" />
+                <FontAwesome
+                  name="print"
+                  size={24}
+                  color="white"
+                  style={styles.icon}
+                />
                 <Text style={styles.buttonText}>Imprimir</Text>
               </TouchableOpacity>
 
@@ -167,9 +167,14 @@ export default function Home({ route }) {
                 style={styles.printButton2}
                 onPress={handleBarCodePress}
               >
-                <AntDesign name="barcode" size={24} color="white" />
+                <AntDesign
+                  name="barcode"
+                  size={24}
+                  color="white"
+                  style={styles.icon}
+                />
                 <Text style={styles.buttonText}>
-                  Pagar boleto via código de barras
+                  Pagar via código de barras
                 </Text>
               </TouchableOpacity>
 
@@ -177,21 +182,26 @@ export default function Home({ route }) {
                 style={styles.pixButton}
                 onPress={handlePixPaymentPress}
               >
-                <FontAwesome name="money" size={24} color="white" />
+                <FontAwesome
+                  name="money"
+                  size={24}
+                  color="white"
+                  style={styles.icon}
+                />
                 <Text style={styles.buttonText}>Pagar boleto via Pix</Text>
               </TouchableOpacity>
+
+              <View style={styles.liberarContainer}>
+                <TouchableOpacity
+                  style={styles.liberarButtom}
+                  onPress={handleLiberarPress}
+                >
+                  <Feather name="unlock" size={24} color="white" />
+                  <Text style={styles.buttonText}>Desbloqueio Temporário</Text>
+                </TouchableOpacity>
+              </View>
             </Animatable.View>
           </Animatable.View>
-
-          <View style={styles.liberarContainer}>
-            <TouchableOpacity
-              style={styles.liberarButtom}
-              onPress={handleLiberarPress}
-            >
-              <MaterialIcons name="payments" size={24} color="white" />
-              <Text style={styles.buttonText}>Promessa de pagamento</Text>
-            </TouchableOpacity>
-          </View>
         </ScrollView>
       </Animatable.View>
 
@@ -287,7 +297,8 @@ export default function Home({ route }) {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalText}>
-              Sucesso! Você tem 24 horas para realizar o pagamento
+              A velocidade da sua conexão foi restabelecida temporariamente ate
+              a próxima data útil enquanto confirmamos o seu pagamento.
             </Text>
 
             <TouchableOpacity
@@ -357,9 +368,10 @@ const styles = StyleSheet.create({
   },
   statusText4: {
     color: "#111",
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
     marginBottom: 10,
+    marginTop: 10,
   },
   card: {
     width: "98%",
@@ -492,4 +504,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
+  icon:{
+    justifyContent: "flex-start",
+  }
 });

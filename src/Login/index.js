@@ -16,8 +16,9 @@ const StyledInput = styled.TextInput`
   border-bottom-width: 2px;
   border-bottom-color: #fff;
   margin-bottom: 15px;
-  font-size: 30px;
+  font-size: 25px;
   padding: 5px;
+  text-align: center ;
 `;
 
 const StyledButton = styled.TouchableOpacity`
@@ -66,13 +67,15 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     color: "white",
-    marginBottom: 15,
+    marginBottom: 40,
+    textAlign: "center",
     marginTop: 80,
   },
   infoText: {
     fontSize: 16,
     color: "white",
     marginBottom: 20,
+    textAlign: "center",
     marginTop: 10,
   },
 });
@@ -221,21 +224,16 @@ export default function Login() {
 
           if (data && data.cpfCnpj) {
             if (data.records > 1) {
-              console.log('Navegando para a tela "SelecionarContrato"');
+            
               navigation.navigate("SelecionarContrato", { userData: data });
             } else {
               AsyncStorage.setItem("cpfCnpj", cleanedCpfCnpj)
                 .then(() => {
-                  console.log('Navegando para a tela "Tab2"');
                   navigation.navigate("SelecionarContrato", {
                     cpfCnpj: cleanedCpfCnpj,
                   });
                 })
                 .catch((storageError) => {
-                  console.error(
-                    "Erro ao salvar CPF/CNPJ no AsyncStorage:",
-                    storageError
-                  );
                 });
             }
           } else {
@@ -245,7 +243,6 @@ export default function Login() {
           setError("CPF/CNPJ inválido");
         }
       } catch (apiError) {
-        console.error("Erro na chamada à API:", apiError);
         setError("Erro na chamada à API");
       }
     } else {
@@ -264,9 +261,9 @@ export default function Login() {
         </Animatable.View>
 
       <Animatable.View animation="fadeInUp" duration={2000}  style={styles.containerForm}>
-        <Text style={styles.welcomeText}>Seja bem vindo(a)</Text>
+        <Text style={styles.welcomeText}>Seja bem vindo(a)!</Text>
         <Text style={styles.infoText}>
-          Informe seu CPF ou CNPJ para acessar o app
+          Informe seu CPF ou CNPJ para acessar
         </Text>
 
         <StyledInput
