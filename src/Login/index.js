@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import { View, Image, Text, StyleSheet, } from "react-native";
+import { View, Image, Text, StyleSheet } from "react-native";
 import React, { useState, useEffect } from "react";
 import logo from "../Images/logo.png";
 import styled from "styled-components/native";
@@ -7,8 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { consultaAPI } from "../Api/Api";
 import { useNavigation } from "@react-navigation/native";
 
-import * as Animatable from 'react-native-animatable';
-
+import * as Animatable from "react-native-animatable";
 
 const StyledInput = styled.TextInput`
   width: 100%;
@@ -18,7 +17,7 @@ const StyledInput = styled.TextInput`
   margin-bottom: 15px;
   font-size: 25px;
   padding: 5px;
-  text-align: center ;
+  text-align: center;
 `;
 
 const StyledButton = styled.TouchableOpacity`
@@ -201,12 +200,10 @@ export default function Login() {
 
           if (data && data.cpfCnpj) {
             if (data.records > 1) {
-              console.log('Navegando para a tela "SelecionarContrato"');
               navigation.navigate("SelecionarContrato", { userData: data });
             } else {
               AsyncStorage.setItem("cpfCnpj", cleanedCpfCnpj)
                 .then(() => {
-                  console.log('Navegando para a tela "Tab2"');
                   navigation.navigate("SelecionarContrato", {
                     cpfCnpj: cleanedCpfCnpj,
                   });
@@ -224,7 +221,6 @@ export default function Login() {
 
           if (data && data.cpfCnpj) {
             if (data.records > 1) {
-            
               navigation.navigate("SelecionarContrato", { userData: data });
             } else {
               AsyncStorage.setItem("cpfCnpj", cleanedCpfCnpj)
@@ -233,8 +229,7 @@ export default function Login() {
                     cpfCnpj: cleanedCpfCnpj,
                   });
                 })
-                .catch((storageError) => {
-                });
+                .catch((storageError) => {});
             }
           } else {
             setError(data.message || "Erro desconhecido na API");
@@ -250,17 +245,23 @@ export default function Login() {
     }
   };
 
-
-
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
 
-      <Animatable.View animation="fadeInDown" duration={2000} style={styles.containerLogo}>
+      <Animatable.View
+        animation="fadeInDown"
+        duration={2000}
+        style={styles.containerLogo}
+      >
         <Image source={logo} style={styles.image} />
-        </Animatable.View>
+      </Animatable.View>
 
-      <Animatable.View animation="fadeInUp" duration={2000}  style={styles.containerForm}>
+      <Animatable.View
+        animation="fadeInUp"
+        duration={2000}
+        style={styles.containerForm}
+      >
         <Text style={styles.welcomeText}>Seja bem vindo(a)!</Text>
         <Text style={styles.infoText}>
           Informe seu CPF ou CNPJ para acessar
@@ -271,7 +272,6 @@ export default function Login() {
           keyboardType="numeric"
           value={cpfCnpj}
           onChangeText={(text) => {
-            console.log("Valor digitado:", text);
             setCpfCnpj(text);
             setError("");
           }}
@@ -281,11 +281,7 @@ export default function Login() {
           <ButtonText>Acessar</ButtonText>
         </StyledButton>
         {error !== "" && <ErrorText>{error}</ErrorText>}
-
-        </Animatable.View>
-
-
-
+      </Animatable.View>
     </View>
   );
 }

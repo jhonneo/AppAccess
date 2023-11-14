@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect , useRef} from "react";
 import {
   TouchableOpacity,
   View,
@@ -25,31 +25,38 @@ export default function Home({ route }) {
   const selectedContract = route.params.selectedContract;
   const [contractStatus, setContractStatus] = useState("");
   const [contractDueStatus, setDueStatus] = useState("");
-  const [boletoLink, setBoletoLink] = useState("");
-  const [Pix, setPix] = useState("");
-  const [barcode, setBarcode] = useState("");
+  const [boletos, setBoletos] = useState([]); // Alteração: Armazenar todos os boletos em um array
   const [isModalVisible, setModalVisible] = useState(false);
   const [isModalVisible2, setModalVisible2] = useState(false);
   const [pixCopied, setPixCopied] = useState(false);
   const [pixBarCodeCopied, setBarcodeCopied] = useState(false);
   const [modalErrorVisible, setModalErrorVisible] = useState(false);
   const [modalSuccessVisible, setModalSuccessVisible] = useState(false);
+  const [selectedBoleto, setSelectedBoleto] = useState(null);
+  const selectedBoletoRef = useRef(null);
+
 
   useEffect(() => {
     if (selectedContract) {
       const status = selectedContract.booklet[0].payment || "Em dia";
       const dueDate = selectedContract.booklet[0].dueDate || " ";
-      const link = selectedContract.booklet[0].billetCurrent || "";
-      const pix_copy_paste = selectedContract.booklet[0].pix_copy_paste || "";
-      const barcode = selectedContract.booklet[0].barcode || "";
-
       setContractStatus(status);
 
       const formattedDueDate = formatDueDate(dueDate);
+
       setDueStatus(formattedDueDate);
-      setBoletoLink(link);
-      setPix(pix_copy_paste);
-      setBarcode(barcode);
+
+      const boletosData = selectedContract.booklet.map((boleto) => ({
+
+        link: boleto.billetCurrent || "",
+        id: boleto.id || "",
+        pix: boleto.pix_copy_paste || "",
+        barcode: boleto.barcode || "",
+        status: boleto.payment || "Em dia", 
+        dueDate: formatDueDate(boleto.dueDate) || "", 
+      }));
+
+      setBoletos(boletosData);
     }
   }, [selectedContract]);
 
@@ -63,52 +70,85 @@ export default function Home({ route }) {
     return date;
   };
 
-  const handlePrintPress = () => {
-    if (boletoLink) {
-      Linking.openURL(boletoLink)
-        .then(() => {})
-        .catch((err) => {});
+const handlePrintPress = (boleto) => {
+  if (boleto.link) {
+    Linking.openURL(boleto.link)
+      .then(() => {})
+      .catch((err) => {});
+  }
+};
+
+const handlePixPaymentPress = (boleto) => {
+  if (boleto.pix) {
+    setModalVisible(true);
+    selectedBoletoRef.current = boleto;
+  }
+};
+
+const handleBarCodePress = async (boleto) => {
+  if (boleto.barcode) {
+
+    setModalVisible2(true);
+    selectedBoletoRef.current = boleto;
+  }
+};
+
+
+const handleCopyToClipboard = async () => {
+  try {
+    const selectedBoleto = selectedBoletoRef.current;
+    if (selectedBoleto) {
+      const encodedPix = encodeURIComponent(selectedBoleto.pix);
+
+      await Clipboard.setString(encodedPix);
+    } else {
+      console.error("Nenhum boleto foi selecionado");
     }
-  };
+  } catch (error) {
+    console.error("Erro ao copiar:", error);
+  }
+};
 
-  const handleCopyToClipboard = async () => {
-    try {
-      await Clipboard.setString(Pix);
-    } catch (error) {}
-  };
 
-  const handleCopyToClipboardBarCode = async () => {
-    try {
-      await Clipboard.setString(barcode);
-    } catch (error) {}
-  };
 
-  const handlePixPaymentPress = () => {
-    if (Pix) {
-      setModalVisible(true);
+const handleCopyToClipboardBarCode = async () => {
+  try {
+  
+    const selectedBoleto = selectedBoletoRef.current;
+    if (selectedBoleto) {
+      await Clipboard.setString(selectedBoleto.barcode);
+    } else {
+      console.error("Nenhum boleto foi selecionado");
     }
-  };
+  } catch (error) {
+    console.error("Erro ao copiar", error);
+  }
+};
 
-  const handleBarCodePress = () => {
-    if (barcode) {
-      setModalVisible2(true);
+
+const handleLiberarPress = async () => {
+  try { 
+    const selectedBoleto = boletos.find((boleto) => boleto.id === someId); 
+    if (selectedBoleto) {
+      console.log("ID e Status do boleto selecionado:", selectedBoleto.id, selectedBoleto.status);
+      const cliente = { id: selectedBoleto.id, status: selectedBoleto.status };
+      const boletoData = { code: selectedBoleto.code, temporary_released: false };
+      liberaTemporariamenteAPI(cliente, boletoData)
+        .then(() => {
+          setModalSuccessVisible(true);
+        })
+        .catch(() => {
+          setModalErrorVisible(true);
+        });
+    } else {
+      console.error("Nenhum Boleto Selecionado para Desbloqueio");
     }
-  };
+  } catch (error) {
+    setModalErrorVisible(true);
+  }
+};
 
-  const handleLiberarPress = async () => {
-    try {
-      //os dados do cliente e do boleto
-      const cliente = { id: "id-do-cliente", status: "REDUZIDO" };
-      const boleto = { code: "codigo-do-boleto", temporary_released: false };
 
-      // Chama a função para liberar temporariamente
-      await liberaTemporariamenteAPI(cliente, boleto);
-
-      setModalSuccessVisible(true);
-    } catch (error) {
-      setModalErrorVisible(true);
-    }
-  };
 
   return (
     <View style={styles.tabContainer}>
@@ -128,80 +168,90 @@ export default function Home({ route }) {
         <Animatable.View animation="fadeIn" duration={3000}>
           <Text style={styles.statusText3}>Confira os boletos abaixo:</Text>
         </Animatable.View>
-
         <ScrollView
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           style={styles.contractList}
         >
-          <Animatable.View style={styles.card}>
-            <Text style={styles.statusText}>Situação: {contractStatus}</Text>
+          {boletos.map((boleto, index) => (
+            <Animatable.View key={index} style={styles.card}>
+              <Text style={styles.statusText}>Situação: {boleto.status}</Text>
+              <Text style={styles.statusText2}>
+                Vencimento: {boleto.dueDate}
+              </Text>
 
-            <Text style={styles.statusText2}>
-              Vencimento: {contractDueStatus}{" "}
-            </Text>
-
-            <View style={styles.cardText}>
-              <Text style={styles.statusText4}>Escolha uma opção abaixo:</Text>
-            </View>
-
-            <Animatable.View
-              animation="fadeIn"
-              duration={3000}
-              style={styles.card2}
-            >
-              <TouchableOpacity
-                style={styles.printButton}
-                onPress={handlePrintPress}
-              >
-                <FontAwesome
-                  name="print"
-                  size={24}
-                  color="white"
-                  style={styles.icon}
-                />
-                <Text style={styles.buttonText}>Imprimir</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.printButton2}
-                onPress={handleBarCodePress}
-              >
-                <AntDesign
-                  name="barcode"
-                  size={24}
-                  color="white"
-                  style={styles.icon}
-                />
-                <Text style={styles.buttonText}>
-                  Pagar via código de barras
+              <View style={styles.cardText}>
+                <Text style={styles.statusText4}>
+                  Escolha uma opção abaixo:
                 </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.pixButton}
-                onPress={handlePixPaymentPress}
-              >
-                <FontAwesome
-                  name="money"
-                  size={24}
-                  color="white"
-                  style={styles.icon}
-                />
-                <Text style={styles.buttonText}>Pagar boleto via Pix</Text>
-              </TouchableOpacity>
-
-              <View style={styles.liberarContainer}>
-                <TouchableOpacity
-                  style={styles.liberarButtom}
-                  onPress={handleLiberarPress}
-                >
-                  <Feather name="unlock" size={24} color="white" />
-                  <Text style={styles.buttonText}>Desbloqueio Temporário</Text>
-                </TouchableOpacity>
               </View>
+
+              <Animatable.View
+                animation="fadeIn"
+                duration={3000}
+                style={styles.card2}
+              >
+                <TouchableOpacity
+                  style={styles.printButton}
+                  onPress={() => handlePrintPress(boleto)}
+                >
+                  <FontAwesome
+                    name="print"
+                    size={24}
+                    color="white"
+                    style={styles.icon}
+                  />
+                  <Text style={styles.buttonText}>Imprimir</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.printButton2}
+                  onPress={() => {
+                    handleBarCodePress(boleto);
+                  }}
+                >
+                  <AntDesign
+                    name="barcode"
+                    size={24}
+                    color="white"
+                    style={styles.icon}
+                  />
+                  <Text style={styles.buttonText}>
+                    Pagar via código de barras
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.pixButton}
+                  onPress={() => {
+                    handlePixPaymentPress(boleto);
+                  }}
+                >
+                  <FontAwesome
+                    name="money"
+                    size={24}
+                    color="white"
+                    style={styles.icon}
+                  />
+                  <Text style={styles.buttonText}>Pagar boleto via Pix</Text>
+                </TouchableOpacity>
+
+                <View style={styles.liberarContainer}>
+                  <TouchableOpacity
+                    style={styles.liberarButtom}
+                    onPress={() => handleLiberarPress()}
+                  >
+                    <Feather name="unlock" size={24} color="white" />
+                    <Text style={styles.buttonText}>
+                      Desbloqueio Temporário
+                    </Text>
+                  </TouchableOpacity>
+
+
+                </View>
+              </Animatable.View>
             </Animatable.View>
-          </Animatable.View>
+          ))}
         </ScrollView>
       </Animatable.View>
 
@@ -215,7 +265,7 @@ export default function Home({ route }) {
 
             <TouchableOpacity
               onPress={() => {
-                handleCopyToClipboard(Pix);
+                handleCopyToClipboard();
                 setPixCopied(true);
               }}
               style={[
@@ -246,7 +296,7 @@ export default function Home({ route }) {
 
             <TouchableOpacity
               onPress={() => {
-                handleCopyToClipboardBarCode(barcode);
+                handleCopyToClipboardBarCode();
                 setBarcodeCopied(true);
               }}
               style={[
@@ -504,7 +554,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
-  icon:{
+  icon: {
     justifyContent: "flex-start",
-  }
+  },
 });

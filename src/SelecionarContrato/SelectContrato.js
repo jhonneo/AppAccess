@@ -15,17 +15,30 @@ import * as Animatable from "react-native-animatable";
 export default function SelecionarContrato({ route, navigation }) {
   const userData = route.params.userData;
 
-  const handleSelectContract = (contract) => {
-    AsyncStorage.setItem("contractId", contract.id.toString())
-      .then(() => {
-        navigation.navigate("Home", {
-          userData: userData,
-          selectedContract: contract,
-        });
-      })
-      .catch((error) => {
-        console.error("Erro ao selecionar contrato:", error);
-      });
+  const handleSelectContract = async (contract) => {
+    try {
+      if (contract && contract.id) {
+        // Verifica se a propriedade 'payment' está presente e não é nula em algum objeto dentro de 'booklet'
+        const hasValidPayment = contract.booklet.some(
+          (item) => "payment" in item && item.payment !== null
+        );
+
+        if (hasValidPayment) {
+          await AsyncStorage.setItem("contractId", contract.id.toString());
+          navigation.navigate("Home", {
+            userData: userData,
+            selectedContract: contract,
+          });
+        } else {
+          navigation.navigate("SemBoleto");
+        }
+      } else {
+        navigation.navigate("SemBoleto");
+      }
+    }
+     catch (error) {
+      navigation.navigate("SemBoleto");
+    }
   };
 
   return (
@@ -39,13 +52,12 @@ export default function SelecionarContrato({ route, navigation }) {
       </Animatable.View>
 
       <Animatable.View animation="fadeIn" duration={3000}>
-      <Text style={styles.title}>Selecione um contrato:</Text>
-
+        <Text style={styles.title}>Selecione um contrato:</Text>
       </Animatable.View>
 
       <ScrollView
-        showsVerticalScrollIndicator={false} 
-        showsHorizontalScrollIndicator={false} 
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
         style={styles.contractList}
       >
         {userData.contracts.map((contract, index) => (
@@ -56,10 +68,15 @@ export default function SelecionarContrato({ route, navigation }) {
             style={styles.contractItem}
           >
             <Text style={styles.contractName}>Contrato {index + 1}</Text>
-            <Text style={styles.contractInfo2}>Situação: {contract.status}</Text>
+            <Text style={styles.contractInfo2}>
+              Situação: {contract.status}
+            </Text>
+
             <Text style={styles.contractInfo}>Nome: {contract.nome}</Text>
             <Text style={styles.contractInfo}>Plano: {contract.plano}</Text>
-            <Text style={styles.contractInfo}>Endereço: {contract.endereco}</Text>
+            <Text style={styles.contractInfo}>
+              Endereço: {contract.endereco}
+            </Text>
             <Text style={styles.contractInfo}>Bairro: {contract.bairro}</Text>
             <Text style={styles.contractInfo}>Cidade: {contract.cidade}</Text>
             <Text style={styles.contractInfo}>Estado: {contract.estado}</Text>
