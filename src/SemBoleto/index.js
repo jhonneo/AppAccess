@@ -12,7 +12,7 @@ export default function SemBoleto() {
       </View>
 
       <Image source={ImageBoleto} style={styles.imagePrincipal} />
-      <Text style={styles.text}>Você não tem nenhum boleto pendente</Text>
+      <Text style={styles.text}>Você não tem boleto vencido!</Text>
     </View>
   );
 }
@@ -35,12 +35,14 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   image: {
-    width: 200,
+    width: 300,
     height: 150,
+    marginBottom: 10
   },
   imagePrincipal: {
     width: 250,
     height: 250,
+    marginBottom: 15
   },
   text: {
     fontSize: 25,
