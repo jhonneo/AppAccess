@@ -1,4 +1,4 @@
-import React, { useState, useEffect , useRef} from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   TouchableOpacity,
   View,
@@ -7,58 +7,120 @@ import {
   StyleSheet,
   ScrollView,
   Linking,
-  Button,
   Modal,
+  RefreshControl,
 } from "react-native";
 import logo from "../Images/logo.png";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { consultaAPI, liberaTemporariamenteAPI } from "../Api/Api";
-import { MaterialIcons } from "@expo/vector-icons";
-import { FontAwesome } from "@expo/vector-icons";
-import { AntDesign } from "@expo/vector-icons";
-import { Feather } from "@expo/vector-icons";
+import { liberaTemporariamenteAPI } from "../Api/Api";
+import { FontAwesome, Ionicons, AntDesign, Feather } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import "react-native-gesture-handler";
+import { useNavigation } from "@react-navigation/native";
 
 import * as Clipboard from "expo-clipboard";
 import * as Animatable from "react-native-animatable";
 
+import { consultaAPI } from "../Api/Api";
+
 export default function Home({ route }) {
-  const selectedContract = route.params.selectedContract;
+  const navigation = useNavigation();
+
+  const [selectedContract, setSelectedContract] = useState(
+    route.params.selectedContract
+  );
+  const [refreshing, setRefreshing] = useState(false);
+
   const [contractStatus, setContractStatus] = useState("");
   const [contractDueStatus, setDueStatus] = useState("");
-  const [boletos, setBoletos] = useState([]); // Alteração: Armazenar todos os boletos em um array
+  const [boletos, setBoletos] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isModalVisible2, setModalVisible2] = useState(false);
   const [pixCopied, setPixCopied] = useState(false);
   const [pixBarCodeCopied, setBarcodeCopied] = useState(false);
   const [modalErrorVisible, setModalErrorVisible] = useState(false);
   const [modalSuccessVisible, setModalSuccessVisible] = useState(false);
-  const [selectedBoleto, setSelectedBoleto] = useState(null);
   const selectedBoletoRef = useRef(null);
 
+  const fetchData = async () => {
+    try {
+      const updatedSelectedContract = await fetchUpdatedSelectedContract();
+      setSelectedContract((prevContract) => {
+        return updatedSelectedContract;
+      });
+    } catch (error) { }
+  };
+
+  const fetchUpdatedSelectedContract = async () => {
+    const data = await consultaAPI();
+    return data;
+  };
 
   useEffect(() => {
-    if (selectedContract) {
-      const status = selectedContract.booklet[0].payment || "Em dia";
-      const dueDate = selectedContract.booklet[0].dueDate || " ";
-      setContractStatus(status);
-
-      const formattedDueDate = formatDueDate(dueDate);
-
-      setDueStatus(formattedDueDate);
-
-      const boletosData = selectedContract.booklet.map((boleto) => ({
-
-        link: boleto.billetCurrent || "",
-        id: boleto.id || "",
-        pix: boleto.pix_copy_paste || "",
-        barcode: boleto.barcode || "",
-        status: boleto.payment || "Em dia", 
-        dueDate: formatDueDate(boleto.dueDate) || "", 
-      }));
-
-      setBoletos(boletosData);
-    }
+    fetchData();
   }, [selectedContract]);
+
+  useEffect(() => {
+    const fetchDataOnInit = async () => {
+      await fetchData();
+    };
+
+    fetchDataOnInit();
+  }, []);
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await fetchData();
+      setRefreshing(false);
+    } catch (error) {
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await fetchData();
+      setRefreshing(false);
+    } catch (error) {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (selectedContract) {
+        const status = selectedContract.booklet[0].payment || "Em dia";
+        const dueDate = selectedContract.booklet[0].dueDate || " ";
+        setContractStatus(status);
+        const formattedDueDate = formatDueDate(dueDate);
+        setDueStatus(formattedDueDate);
+        const boletosData = selectedContract.booklet.map((boleto) => ({
+          id: boleto.id || "",
+          idClient: boleto.idClient || "",
+          temporary_released: boleto.temporary_released || "",
+          code: boleto.code || "",
+          link: boleto.billetCurrent || "",
+          pix: boleto.pix_copy_paste || "",
+          barcode: boleto.barcode || "",
+          status: boleto.payment || "Em dia",
+          dueDate: formatDueDate(boleto.dueDate) || "",
+          value: formatCurrency(boleto.value)
+        }));
+
+        setBoletos(boletosData);
+      }
+    };
+
+    fetchData();
+  }, [selectedContract]);
+
+  const formatCurrency = (value) => {
+    if (value !== undefined && value !== null) {
+      return  parseFloat(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    return "";
+  };
 
   const formatDueDate = (date) => {
     const parts = date.split("-");
@@ -70,88 +132,99 @@ export default function Home({ route }) {
     return date;
   };
 
-const handlePrintPress = (boleto) => {
-  if (boleto.link) {
-    Linking.openURL(boleto.link)
-      .then(() => {})
-      .catch((err) => {});
-  }
-};
-
-const handlePixPaymentPress = (boleto) => {
-  if (boleto.pix) {
-    setModalVisible(true);
-    selectedBoletoRef.current = boleto;
-  }
-};
-
-const handleBarCodePress = async (boleto) => {
-  if (boleto.barcode) {
-
-    setModalVisible2(true);
-    selectedBoletoRef.current = boleto;
-  }
-};
-
-
-const handleCopyToClipboard = async () => {
-  try {
-    const selectedBoleto = selectedBoletoRef.current;
-    if (selectedBoleto) {
-      const encodedPix = encodeURIComponent(selectedBoleto.pix);
-
-      await Clipboard.setString(encodedPix);
-    } else {
-      console.error("Nenhum boleto foi selecionado");
+  const handlePrintPress = (boleto) => {
+    if (boleto.link) {
+      Linking.openURL(boleto.link)
+        .then(() => { })
+        .catch((err) => { });
     }
-  } catch (error) {
-    console.error("Erro ao copiar:", error);
-  }
-};
+  };
 
-
-
-const handleCopyToClipboardBarCode = async () => {
-  try {
-  
-    const selectedBoleto = selectedBoletoRef.current;
-    if (selectedBoleto) {
-      await Clipboard.setString(selectedBoleto.barcode);
-    } else {
-      console.error("Nenhum boleto foi selecionado");
+  const handlePixPaymentPress = (boleto) => {
+    if (boleto.pix) {
+      setModalVisible(true);
+      selectedBoletoRef.current = boleto;
     }
-  } catch (error) {
-    console.error("Erro ao copiar", error);
-  }
-};
+  };
 
-
-const handleLiberarPress = async () => {
-  try { 
-    const selectedBoleto = boletos.find((boleto) => boleto.id === someId); 
-    if (selectedBoleto) {
-      console.log("ID e Status do boleto selecionado:", selectedBoleto.id, selectedBoleto.status);
-      const cliente = { id: selectedBoleto.id, status: selectedBoleto.status };
-      const boletoData = { code: selectedBoleto.code, temporary_released: false };
-      liberaTemporariamenteAPI(cliente, boletoData)
-        .then(() => {
-          setModalSuccessVisible(true);
-        })
-        .catch(() => {
-          setModalErrorVisible(true);
-        });
-    } else {
-      console.error("Nenhum Boleto Selecionado para Desbloqueio");
+  const handleBarCodePress = async (boleto) => {
+    if (boleto.barcode) {
+      setModalVisible2(true);
+      selectedBoletoRef.current = boleto;
     }
-  } catch (error) {
-    setModalErrorVisible(true);
-  }
-};
+  };
+
+  const handleCopyToClipboard = async () => {
+    try {
+      const selectedBoleto = selectedBoletoRef.current;
+      if (selectedBoleto) {
+        await Clipboard.setString(selectedBoleto.pix);
+        setPixCopied(true);  // Marcar como copiado
+      } else {
+        console.error("Boleto não selecionado");
+      }
+    } catch (error) {
+      console.error("Erro ao copiar o PIX: ", error);
+    }
+  };
 
 
+  const handleCopyToClipboardBarCode = async () => {
+    try {
+      const selectedBoleto = selectedBoletoRef.current;
+      if (selectedBoleto) {
+        await Clipboard.setString(selectedBoleto.barcode);
+      } else {
+      }
+    } catch (error) { }
+  };
+
+  const handleLiberarPress = async (boleto) => {
+    try {
+      if (boleto) {
+        const boletoData = {
+          idClient: boleto.idClient,
+          code: boleto.code,
+        };
+
+        liberaTemporariamenteAPI(boletoData)
+          .then((response) => {
+            if (response.status === "success") {
+              setModalSuccessVisible(true);
+              handleRefresh();
+            } else {
+              setModalErrorVisible(true);
+            }
+          })
+          .catch(() => {
+            setModalErrorVisible(true);
+          });
+      } else {
+      }
+    } catch (error) {
+      setModalErrorVisible(true);
+    }
+  };
+
+  const handlePress = () => {
+    navigation.goBack();
+  };
 
   return (
-    <View style={styles.tabContainer}>
+    <SafeAreaView style={styles.tabContainer}>
+      <TouchableOpacity
+        onPress={handlePress}
+        style={{
+          margin: 10,
+          fontSize: 40,
+          flexDirection: "row",
+          justifyContent: "flex-start",
+          alignItems: "center",
+        }}
+      >
+        <Ionicons name="chevron-back" size={18} color="black" />
+        <Text> Voltar</Text>
+      </TouchableOpacity>
       <Animatable.View
         animation="fadeInDown"
         duration={2000}
@@ -168,17 +241,22 @@ const handleLiberarPress = async () => {
         <Animatable.View animation="fadeIn" duration={3000}>
           <Text style={styles.statusText3}>Confira os boletos abaixo:</Text>
         </Animatable.View>
+
         <ScrollView
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           style={styles.contractList}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
+
           {boletos.map((boleto, index) => (
+
             <Animatable.View key={index} style={styles.card}>
               <Text style={styles.statusText}>Situação: {boleto.status}</Text>
-              <Text style={styles.statusText2}>
-                Vencimento: {boleto.dueDate}
-              </Text>
+              <Text style={styles.statusText2}>Vencimento: {boleto.dueDate}</Text>
+              <Text style={styles.statusText5}>Valor: {boleto.value}</Text>
 
               <View style={styles.cardText}>
                 <Text style={styles.statusText4}>
@@ -235,20 +313,6 @@ const handleLiberarPress = async () => {
                   />
                   <Text style={styles.buttonText}>Pagar boleto via Pix</Text>
                 </TouchableOpacity>
-
-                <View style={styles.liberarContainer}>
-                  <TouchableOpacity
-                    style={styles.liberarButtom}
-                    onPress={() => handleLiberarPress()}
-                  >
-                    <Feather name="unlock" size={24} color="white" />
-                    <Text style={styles.buttonText}>
-                      Desbloqueio Temporário
-                    </Text>
-                  </TouchableOpacity>
-
-
-                </View>
               </Animatable.View>
             </Animatable.View>
           ))}
@@ -360,7 +424,7 @@ const handleLiberarPress = async () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -377,7 +441,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-start",
     alignItems: "center",
-    backgroundColor: "#0077bd",
+    backgroundColor: "#fff",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingStart: "5%",
@@ -411,7 +475,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   statusText3: {
-    color: "#FFF",
+    color: "#111",
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 10,
@@ -423,17 +487,24 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 10,
   },
+  statusText5: {
+    color: "#5a5858",
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    marginTop: 10,
+  },
   card: {
     width: "98%",
     padding: 20,
     borderRadius: 20,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFEC",
     shadowColor: "#000",
     shadowOffset: {
-      width: 0,
+      width: 2,
       height: 2,
     },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.35,
     shadowRadius: 4,
     elevation: 5,
     marginBottom: 20,
@@ -452,6 +523,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+
+  hiddenContainer: {
+    display: "none",
+  },
+
   cardText: {
     width: "100%",
     marginBottom: 5,
